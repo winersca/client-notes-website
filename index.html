@@ -3,358 +3,345 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Client Notes Manager (Firebase)</title>
+<title>Client Notes Manager</title>
 <style>
   body {
     font-family: Arial, sans-serif;
-    margin:0; padding:20px;
-    background:#f0f0f0; color:#222;
+    margin: 20px;
+    background-color: white;
+    color: black;
     transition: background-color 0.3s, color 0.3s;
   }
-  body.dark {
-    background:#121212; color:#eee;
+  .darkmode {
+    background-color: #121212;
+    color: #eee;
   }
-  .container {
-    max-width:700px; margin:auto;
-    background:#fff; padding:20px;
-    border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.15);
-  }
-  body.dark .container {
-    background:#222;
-  }
-  h1, h2 {
-    margin-top:0;
-  }
-  label {
-    font-weight:bold; display:block; margin-bottom:6px;
-  }
-  select, input[type=password], input[type=text], textarea {
-    width:100%; padding:8px; font-size:1em;
-    margin-bottom:12px; border:1px solid #ccc; border-radius:4px;
-    background:#fff; color:#222;
-    box-sizing: border-box;
-    transition: background-color 0.3s, color 0.3s;
-  }
-  body.dark select, body.dark input[type=password], body.dark input[type=text], body.dark textarea {
-    background:#333; color:#eee; border-color:#555;
-  }
-  textarea {
-    height:180px; resize: vertical;
-  }
-  button {
-    cursor:pointer; padding:10px 16px; font-size:1em;
-    border:none; border-radius:4px; background:#007bff; color:#fff;
-    transition: background-color 0.3s;
-  }
-  button:hover {
-    background:#0056b3;
-  }
-  button.secondary {
-    background:#28a745;
-  }
-  button.ghost {
-    background:transparent; color:#007bff; border:1px solid #007bff;
-  }
-  button.ghost:hover {
-    background:#007bff; color:#fff;
-  }
-  .flex-row {
-    display:flex; justify-content:space-between; align-items:center;
-  }
-  .flex-row > * {
-    margin-right:10px;
-  }
-  .flex-row > *:last-child {
-    margin-right:0;
-  }
-  .error {
-    color:#c00; margin-bottom:12px;
-  }
-  .saved-text {
-    font-size:0.9em; color:#555; margin-top:8px;
-  }
-  body.dark .saved-text {
-    color:#bbb;
-  }
-  .lang-select {
-    max-width:150px;
-  }
-  ul.client-list {
-    list-style:none; padding-left:0;
-    max-height: 150px; overflow-y: auto;
-    border:1px solid #ccc; border-radius:4px;
-    margin-bottom: 16px;
-  }
-  ul.client-list li {
+  input, button, select, textarea {
+    margin: 5px 0;
     padding: 8px;
-    border-bottom: 1px solid #ddd;
+    font-size: 1rem;
+  }
+  #client-list > div {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 8px;
+  }
+  .hidden {
+    display: none;
+  }
+  .client-item {
     cursor: pointer;
   }
-  ul.client-list li:hover {
-    background: #e7f0ff;
+  .selected {
+    background-color: #d0eaff;
   }
-  body.dark ul.client-list li:hover {
-    background: #444;
+  label {
+    display: block;
+    margin-top: 10px;
   }
-  ul.client-list li.selected {
-    background: #007bff; color: #fff;
-  }
-  body.dark ul.client-list li.selected {
-    background: #3399ff;
+  textarea {
+    width: 100%;
+    height: 80px;
   }
 </style>
-
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
 </head>
 <body>
-<div id="app" class="container" aria-live="polite"></div>
+
+<h1>Client Notes Manager</h1>
+
+<div id="auth-section">
+  <input type="email" id="email" placeholder="Email" />
+  <input type="password" id="password" placeholder="Password" />
+  <button id="login-btn">Login</button>
+  <button id="signup-btn">Sign Up</button>
+  <p id="auth-message" style="color:red;"></p>
+</div>
+
+<div id="app-section" class="hidden">
+  <button id="logout-btn">Logout</button>
+  <h2 id="welcome-msg"></h2>
+
+  <label for="lang-select">Language:</label>
+  <select id="lang-select">
+    <option value="en">English</option>
+    <option value="fr">Français</option>
+    <option value="zh">中文</option>
+  </select>
+
+  <label><input type="checkbox" id="darkmode-toggle" /> Dark Mode</label>
+
+  <h3 id="add-client-title">Add New Client</h3>
+  <input type="text" id="new-client-name" placeholder="Client Name" />
+  <button id="add-client-btn">Add Client</button>
+
+  <h3 id="clients-title">Clients</h3>
+  <div id="client-list"></div>
+
+  <div id="notes-section" class="hidden">
+    <h3 id="notes-title">Notes for</h3>
+    <textarea id="client-notes" placeholder="Enter notes here..."></textarea>
+    <br/>
+    <button id="save-notes-btn">Save Notes</button>
+    <button id="delete-client-btn" style="margin-left: 10px; color: red;">Delete Client</button>
+  </div>
+</div>
+
+<!-- Firebase compat SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 
 <script>
-(() => {
-  // Firebase config - replace with your actual config if different
   const firebaseConfig = {
-    apiKey: "AIzaSyBVk1hAiKIu_Qf0Js4x2VPNvcVlJxc7ebY",
-    authDomain: "clients-notes.firebaseapp.com",
-    projectId: "clients-notes",
-    storageBucket: "clients-notes.firebasestorage.app",
-    messagingSenderId: "573296430958",
-    appId: "1:573296430958:web:68ab8324fbc3efaa7f7b7f",
-    measurementId: "G-19SVZ9NYLR"
+    apiKey: "AIzaSyAASlcniV8SWmh8kXy87L-foLIV-9i-6Dw",
+    authDomain: "client-notes-b6a09.firebaseapp.com",
+    projectId: "client-notes-b6a09",
+    storageBucket: "client-notes-b6a09.firebasestorage.app",
+    messagingSenderId: "900257426464",
+    appId: "1:900257426464:web:a1e538f1a8057dab92e045",
+    measurementId: "G-8J94LEX79T"
   };
 
   // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
   const db = firebase.firestore();
 
-  // Translations (simplified for brevity)
+  // Elements
+  const authSection = document.getElementById('auth-section');
+  const appSection = document.getElementById('app-section');
+  const loginBtn = document.getElementById('login-btn');
+  const signupBtn = document.getElementById('signup-btn');
+  const logoutBtn = document.getElementById('logout-btn');
+  const emailInput = document.getElementById('email');
+  const passwordInput = document.getElementById('password');
+  const authMessage = document.getElementById('auth-message');
+  const welcomeMsg = document.getElementById('welcome-msg');
+  const langSelect = document.getElementById('lang-select');
+  const darkmodeToggle = document.getElementById('darkmode-toggle');
+  const newClientNameInput = document.getElementById('new-client-name');
+  const addClientBtn = document.getElementById('add-client-btn');
+  const clientListDiv = document.getElementById('client-list');
+  const notesSection = document.getElementById('notes-section');
+  const notesTitle = document.getElementById('notes-title');
+  const clientNotesTextarea = document.getElementById('client-notes');
+  const saveNotesBtn = document.getElementById('save-notes-btn');
+  const deleteClientBtn = document.getElementById('delete-client-btn');
+
+  // State
+  let currentUser = null;
+  let clientsUnsub = null;
+  let selectedClientId = null;
+
+  // Translations
   const translations = {
     en: {
-      loginTitle: "Login",
-      username: "Username",
-      password: "Password",
-      loginButton: "Login",
-      incorrectLogin: "Incorrect login. Use username between 201 and 209 and password 88.",
-      logout: "Logout",
-      language: "Language:",
-      clientListTitle: "Clients",
-      newClientPlaceholder: "New client name",
-      addClientButton: "Add Client",
-      notesTitle: "Notes for",
-      notesPlaceholder: "Write notes here...",
-      saveNotes: "Save Notes",
-      notesSaved: "Notes saved successfully.",
-      deleteClient: "Delete Client",
-      noClients: "No clients yet. Add one!",
-      dark: "Dark Mode",
-      light: "Light Mode"
+      login: 'Login',
+      signup: 'Sign Up',
+      logout: 'Logout',
+      email: 'Email',
+      password: 'Password',
+      welcome: 'Welcome',
+      addClient: 'Add New Client',
+      clientName: 'Client Name',
+      clients: 'Clients',
+      darkMode: 'Dark Mode',
+      notesFor: 'Notes for',
+      saveNotes: 'Save Notes',
+      deleteClient: 'Delete Client',
+      enterNotes: 'Enter notes here...',
+      pleaseEnterClientName: 'Please enter a client name',
+      deleteConfirm: 'Are you sure you want to delete this client and all its notes?',
+    },
+    fr: {
+      login: 'Connexion',
+      signup: 'Inscription',
+      logout: 'Déconnexion',
+      email: 'Email',
+      password: 'Mot de passe',
+      welcome: 'Bienvenue',
+      addClient: 'Ajouter un nouveau client',
+      clientName: 'Nom du client',
+      clients: 'Clients',
+      darkMode: 'Mode sombre',
+      notesFor: 'Notes pour',
+      saveNotes: 'Sauvegarder les notes',
+      deleteClient: 'Supprimer le client',
+      enterNotes: 'Entrez les notes ici...',
+      pleaseEnterClientName: 'Veuillez entrer un nom de client',
+      deleteConfirm: 'Êtes-vous sûr de vouloir supprimer ce client et toutes ses notes ?',
+    },
+    zh: {
+      login: '登录',
+      signup: '注册',
+      logout: '登出',
+      email: '电子邮件',
+      password: '密码',
+      welcome: '欢迎',
+      addClient: '添加新客户',
+      clientName: '客户姓名',
+      clients: '客户',
+      darkMode: '夜间模式',
+      notesFor: '备注',
+      saveNotes: '保存备注',
+      deleteClient: '删除客户',
+      enterNotes: '在此输入备注...',
+      pleaseEnterClientName: '请输入客户姓名',
+      deleteConfirm: '您确定要删除该客户及其所有备注吗？',
     }
   };
 
-  const validUsers = Array.from({length:9}, (_,i) => `20${i+1}`);
-  const passwordRequired = "88";
-
-  let state = {
-    loggedIn: false,
-    username: validUsers[0],
-    password: "",
-    language: "en",
-    clients: [],
-    selectedClient: null,
-    darkMode: false,
-    errorMsg: "",
-    newClientName: ""
-  };
-
-  const app = document.getElementById("app");
-
-  // Save dark mode preference to localStorage
-  function updateDarkMode() {
-    if(state.darkMode) document.body.classList.add("dark");
-    else document.body.classList.remove("dark");
+  function translateUI(lang) {
+    loginBtn.textContent = translations[lang].login;
+    signupBtn.textContent = translations[lang].signup;
+    logoutBtn.textContent = translations[lang].logout;
+    emailInput.placeholder = translations[lang].email;
+    passwordInput.placeholder = translations[lang].password;
+    addClientBtn.textContent = translations[lang].addClient;
+    newClientNameInput.placeholder = translations[lang].clientName;
+    document.querySelector('h1').textContent = 'Client Notes Manager';
+    document.getElementById('add-client-title').textContent = translations[lang].addClient;
+    document.getElementById('clients-title').textContent = translations[lang].clients;
+    notesTitle.textContent = `${translations[lang].notesFor} ${selectedClientId ? '' : ''}`;
+    clientNotesTextarea.placeholder = translations[lang].enterNotes;
+    saveNotesBtn.textContent = translations[lang].saveNotes;
+    deleteClientBtn.textContent = translations[lang].deleteClient;
   }
 
-  // Render login page
-  function renderLogin() {
-    const t = translations[state.language];
-    app.innerHTML = `
-      <h1>${t.loginTitle}</h1>
-      <div>
-        <label for="username-select">${t.username}</label>
-        <select id="username-select" aria-label="${t.username}">
-          ${validUsers.map(u=>`<option value="${u}"${state.username===u?" selected":""}>${u}</option>`).join("")}
-        </select>
-      </div>
-      <div>
-        <label for="password-input">${t.password}</label>
-        <input type="password" id="password-input" aria-label="${t.password}" autocomplete="current-password" />
-      </div>
-      <button id="login-btn">${t.loginButton}</button>
-      <div id="error-msg" class="error" role="alert" aria-live="assertive">${state.errorMsg}</div>
-    `;
+  langSelect.addEventListener('change', () => {
+    translateUI(langSelect.value);
+    if(currentUser) {
+      welcomeMsg.textContent = `${translations[langSelect.value].welcome}, ${currentUser.email}`;
+    }
+  });
 
-    document.getElementById("username-select").addEventListener("change", (e) => {
-      state.username = e.target.value;
-    });
-    document.getElementById("login-btn").addEventListener("click", () => {
-      state.password = document.getElementById("password-input").value.trim();
-      if(validUsers.includes(state.username) && state.password === passwordRequired) {
-        state.loggedIn = true;
-        state.errorMsg = "";
-        loadClients();
-      } else {
-        state.errorMsg = t.incorrectLogin;
-        renderLogin();
-      }
+  darkmodeToggle.addEventListener('change', () => {
+    if(darkmodeToggle.checked) {
+      document.body.classList.add('darkmode');
+    } else {
+      document.body.classList.remove('darkmode');
+    }
+  });
+
+  loginBtn.addEventListener('click', () => {
+    authMessage.textContent = '';
+    auth.signInWithEmailAndPassword(emailInput.value, passwordInput.value)
+      .catch(err => authMessage.textContent = err.message);
+  });
+
+  signupBtn.addEventListener('click', () => {
+    authMessage.textContent = '';
+    auth.createUserWithEmailAndPassword(emailInput.value, passwordInput.value)
+      .catch(err => authMessage.textContent = err.message);
+  });
+
+  logoutBtn.addEventListener('click', () => {
+    auth.signOut();
+    clientListDiv.innerHTML = '';
+    notesSection.classList.add('hidden');
+  });
+
+  addClientBtn.addEventListener('click', () => {
+    const name = newClientNameInput.value.trim();
+    if(!name) {
+      alert(translations[langSelect.value].pleaseEnterClientName);
+      return;
+    }
+    db.collection('clients').add({
+      userId: currentUser.uid,
+      name,
+      notes: '',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+      newClientNameInput.value = '';
+    }).catch(err => alert(err.message));
+  });
+
+  saveNotesBtn.addEventListener('click', () => {
+    if (!selectedClientId) return;
+    const newNotes = clientNotesTextarea.value;
+    db.collection('clients').doc(selectedClientId).update({ notes: newNotes })
+      .then(() => alert('Notes saved'))
+      .catch(err => alert(err.message));
+  });
+
+  deleteClientBtn.addEventListener('click', () => {
+    if (!selectedClientId) return;
+    if(confirm(translations[langSelect.value].deleteConfirm)) {
+      db.collection('clients').doc(selectedClientId).delete()
+        .then(() => {
+          notesSection.classList.add('hidden');
+          selectedClientId = null;
+        })
+        .catch(err => alert(err.message));
+    }
+  });
+
+  function renderClients(clients) {
+    clientListDiv.innerHTML = '';
+    clients.forEach(doc => {
+      const client = doc.data();
+      const div = document.createElement('div');
+      div.textContent = client.name;
+      div.classList.add('client-item');
+      if(doc.id === selectedClientId) div.classList.add('selected');
+      div.onclick = () => selectClient(doc.id, client);
+      clientListDiv.appendChild(div);
     });
   }
 
-  // Load clients from Firestore and listen for real-time updates
-  function loadClients() {
-    db.collection("clients").orderBy("name").onSnapshot(snapshot => {
-      state.clients = [];
-      snapshot.forEach(doc => {
-        state.clients.push({ id: doc.id, name: doc.data().name, notes: doc.data().notes || "" });
-      });
-      if(state.selectedClient && !state.clients.find(c => c.id === state.selectedClient.id)) {
-        state.selectedClient = null; // selected client was deleted
-      }
-      renderApp();
-    });
+  function selectClient(clientId, clientData) {
+    selectedClientId = clientId;
+    notesSection.classList.remove('hidden');
+    notesTitle.textContent = `${translations[langSelect.value].notesFor} ${clientData.name}`;
+    clientNotesTextarea.value = clientData.notes || '';
+    renderClients(currentClientsSnapshot);
   }
 
-  // Render main app UI
-  function renderApp() {
-    updateDarkMode();
-    const t = translations[state.language];
-    app.innerHTML = `
-      <div class="flex-row" style="margin-bottom:12px;">
-        <label for="lang-select">${t.language}</label>
-        <select id="lang-select" class="lang-select" aria-label="${t.language}">
-          <option value="en"${state.language==="en"?" selected":""}>English</option>
-        </select>
+  let currentClientsSnapshot = [];
 
-        <button id="toggle-dark-btn" class="ghost" aria-label="Toggle dark mode">${state.darkMode ? t.light : t.dark}</button>
-        <button id="logout-btn" class="ghost">${t.logout}</button>
-      </div>
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      currentUser = user;
+      authSection.classList.add('hidden');
+      appSection.classList.remove('hidden');
+      welcomeMsg.textContent = `${translations[langSelect.value].welcome}, ${user.email}`;
+      subscribeToUserClients(user.uid);
+      translateUI(langSelect.value);
+    } else {
+      currentUser = null;
+      authSection.classList.remove('hidden');
+      appSection.classList.add('hidden');
+      clientListDiv.innerHTML = '';
+      notesSection.classList.add('hidden');
+      selectedClientId = null;
+      if(clientsUnsub) clientsUnsub();
+    }
+  });
 
-      <h2>${t.clientListTitle}</h2>
-      <ul class="client-list" role="listbox" aria-label="${t.clientListTitle}">
-        ${state.clients.length ? state.clients.map(client => `
-          <li tabindex="0" role="option" aria-selected="${state.selectedClient && state.selectedClient.id===client.id}" class="${state.selectedClient && state.selectedClient.id===client.id ? "selected" : ""}">${client.name}</li>
-        `).join("") : `<li>${t.noClients}</li>`}
-      </ul>
-      <input type="text" id="new-client-name" placeholder="${t.newClientPlaceholder}" aria-label="${t.newClientPlaceholder}" value="${state.newClientName}" />
-      <button id="add-client-btn">${t.addClientButton}</button>
-      <hr />
-      <h2>${t.notesTitle} ${state.selectedClient ? state.selectedClient.name : ""}</h2>
-      <textarea id="notes-textarea" placeholder="${t.notesPlaceholder}" aria-label="${t.notesPlaceholder}" ${state.selectedClient ? "" : "disabled"}>${state.selectedClient ? state.selectedClient.notes : ""}</textarea>
-      <div style="margin-top:12px;">
-        <button id="save-btn" ${state.selectedClient ? "" : "disabled"}>${t.saveNotes}</button>
-        <button id="delete-client-btn" ${state.selectedClient ? "" : "disabled"} class="secondary">${t.deleteClient}</button>
-      </div>
-      <div class="saved-text" id="save-message"></div>
-    `;
-
-    document.getElementById("lang-select").addEventListener("change", e => {
-      state.language = e.target.value;
-      renderApp();
-    });
-
-    document.getElementById("toggle-dark-btn").addEventListener("click", () => {
-      state.darkMode = !state.darkMode;
-      updateDarkMode();
-      renderApp();
-    });
-
-    document.getElementById("logout-btn").addEventListener("click", () => {
-      state.loggedIn = false;
-      state.selectedClient = null;
-      renderLogin();
-    });
-
-    document.querySelectorAll("ul.client-list li").forEach(li => {
-      if(li.textContent === t.noClients) return;
-      li.addEventListener("click", () => {
-        const client = state.clients.find(c => c.name === li.textContent);
-        if(client) {
-          state.selectedClient = client;
-          renderApp();
-        }
-      });
-      li.addEventListener("keydown", e => {
-        if(e.key === "Enter" || e.key === " ") {
-          const client = state.clients.find(c => c.name === li.textContent);
-          if(client) {
-            state.selectedClient = client;
-            renderApp();
+  function subscribeToUserClients(uid) {
+    if(clientsUnsub) clientsUnsub();
+    clientsUnsub = db.collection('clients')
+      .where('userId', '==', uid)
+      .orderBy('createdAt')
+      .onSnapshot(snapshot => {
+        currentClientsSnapshot = snapshot.docs;
+        renderClients(snapshot.docs);
+        if(selectedClientId) {
+          // If selected client got updated, refresh notes
+          const selected = snapshot.docs.find(doc => doc.id === selectedClientId);
+          if(selected) {
+            clientNotesTextarea.value = selected.data().notes || '';
+            notesTitle.textContent = `${translations[langSelect.value].notesFor} ${selected.data().name}`;
+          } else {
+            // client deleted
+            selectedClientId = null;
+            notesSection.classList.add('hidden');
           }
         }
       });
-    });
-
-    const newClientInput = document.getElementById("new-client-name");
-    newClientInput.addEventListener("input", e => {
-      state.newClientName = e.target.value;
-    });
-    newClientInput.addEventListener("keydown", e => {
-      if(e.key === "Enter") addClient();
-    });
-
-    document.getElementById("add-client-btn").addEventListener("click", addClient);
-
-    function addClient() {
-      const name = state.newClientName.trim();
-      if(!name) return alert("Please enter a client name.");
-      if(state.clients.find(c => c.name.toLowerCase() === name.toLowerCase())) return alert("Client already exists.");
-      db.collection("clients").add({ name, notes: "" })
-        .then(() => {
-          state.newClientName = "";
-          renderApp();
-        })
-        .catch(err => alert("Error adding client: " + err.message));
-    }
-
-    const notesTextarea = document.getElementById("notes-textarea");
-    notesTextarea.addEventListener("input", () => {
-      if(state.selectedClient) {
-        state.selectedClient.notes = notesTextarea.value;
-      }
-    });
-
-    document.getElementById("save-btn").addEventListener("click", () => {
-      if(state.selectedClient) {
-        db.collection("clients").doc(state.selectedClient.id).update({ notes: state.selectedClient.notes })
-          .then(() => {
-            const msg = document.getElementById("save-message");
-            msg.textContent = t.notesSaved;
-            setTimeout(() => { msg.textContent = ""; }, 3000);
-          })
-          .catch(err => alert("Error saving notes: " + err.message));
-      }
-    });
-
-    document.getElementById("delete-client-btn").addEventListener("click", () => {
-      if(state.selectedClient && confirm(`Delete client "${state.selectedClient.name}"?`)) {
-        db.collection("clients").doc(state.selectedClient.id).delete()
-          .then(() => {
-            state.selectedClient = null;
-            renderApp();
-          })
-          .catch(err => alert("Error deleting client: " + err.message));
-      }
-    });
   }
-
-  // Start
-  if(state.loggedIn) {
-    loadClients();
-  } else {
-    renderLogin();
-  }
-})();
 </script>
+
 </body>
 </html>
